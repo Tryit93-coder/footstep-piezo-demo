@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Footstep Energy Generation System v2.0 — Arduino Nano Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d1117;display:flex;align-items:flex-start;justify-content:center;min-height:100vh;padding:24px 16px;font-family:'Inter',sans-serif}
+.root{background:#0d1117;color:#e2e8f0;padding:14px;width:100%;max-width:860px}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #1e2736;flex-wrap:wrap;gap:8px}
+.topbar-title{font-family:'Orbitron',monospace;font-size:11px;font-weight:700;color:#22d3ee;letter-spacing:2px}
+.topbar-sub{font-size:10px;color:#334155;font-family:'Share Tech Mono',monospace;margin-top:2px}
+.chip{background:#1e293b;border:1px solid #2d3f52;border-radius:4px;padding:2px 8px;font-size:10px;font-family:'Share Tech Mono',monospace;color:#64748b}
+.chip.ok{border-color:#166534;color:#4ade80}
+.main-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px;margin-bottom:12px}
+.card{background:#131920;border:1px solid #1e2d3d;border-radius:8px;padding:12px}
+.card-label{font-size:9px;font-weight:600;letter-spacing:1.8px;color:#334155;text-transform:uppercase;margin-bottom:8px}
+.lcd-housing{background:#0f1a0f;border:3px solid #1a2e1a;border-radius:6px;padding:10px;position:relative}
+.lcd-housing::before{content:'16x2 I\00B2C LCD';position:absolute;top:-9px;left:10px;background:#0d1117;padding:0 4px;font-size:9px;color:#1e3a1e;font-family:'Share Tech Mono',monospace}
+.lcd-glass{background:#0c2a0c;border:1px solid #1a4a1a;border-radius:3px;padding:7px 6px}
+.lcd-row{display:flex;height:22px;align-items:center}
+.lcd-cell{width:13px;height:20px;display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:13px;color:#1a5a1a}
+.lcd-cell.lit{color:#2dda2d}
+.lcd-cell.block-full{color:#4ade80;font-size:15px}
+.lcd-cell.block-empty{color:#1a3a1a;font-size:15px}
+.volt-track{height:6px;background:#0d1117;border-radius:3px;overflow:hidden;margin:4px 0}
+.volt-fill{height:100%;border-radius:3px;transition:width .18s,background .18s}
+.badge{display:inline-block;border-radius:4px;padding:3px 9px;font-size:11px;font-weight:600;letter-spacing:.3px;text-align:center;width:100%;margin-top:4px}
+.badge-none{background:#1a1f2e;color:#334155;border:1px solid #1e293b}
+.badge-low{background:#0d2e1a;color:#4ade80;border:1px solid #166534}
+.badge-med{background:#2a1c00;color:#fbbf24;border:1px solid #78350f}
+.badge-high{background:#2a0d0d;color:#f87171;border:1px solid #7f1d1d}
+.led-dome{width:32px;height:32px;border-radius:50%;background:#1c1c1c;border:2px solid #2d3748;transition:all .15s;position:relative;margin:0 auto}
+.led-dome.on{background:#fde047;border-color:#ca8a04}
+.led-dome.on::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:1px solid rgba(253,224,71,.25)}
+.led-leg{width:2px;height:14px;background:#475569;margin:0 auto}
+.led-resistor{background:#292524;border:1px solid #44403c;border-radius:3px;padding:1px 5px;font-size:9px;color:#78716c;font-family:'Share Tech Mono',monospace;text-align:center}
+.step-btn{width:100%;padding:12px 0;font-family:'Orbitron',monospace;font-size:12px;font-weight:700;letter-spacing:2px;color:#052e16;background:#22c55e;border:none;border-radius:7px;cursor:pointer;transition:all .1s;user-select:none;-webkit-user-select:none}
+.step-btn:active,.step-btn.pressing{background:#16a34a;transform:scale(.97)}
+.step-btn.debounce{background:#14532d;color:#166534;cursor:not-allowed}
+.filter-vis{display:flex;gap:2px;align-items:flex-end;height:28px;margin-top:6px}
+.filter-bar{flex:1;border-radius:2px 2px 0 0;background:#1e3a5f;transition:height .1s}
+.wave-canvas{width:100%;height:64px;display:block;border-radius:4px;background:#080d12}
+.serial{background:#080d12;border:1px solid #1e2d3d;border-radius:6px;padding:8px;height:96px;overflow-y:auto;font-family:'Share Tech Mono',monospace;font-size:10px}
+.s-head{color:#1e293b}.s-data{color:#22c55e}.s-evt{color:#38bdf8}.s-sep{color:#1e3a2a}
+.pins{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.pin{display:flex;align-items:center;gap:3px;background:#0d1117;border:1px solid #1e2d3d;border-radius:3px;padding:2px 5px;font-size:9px;font-family:'Share Tech Mono',monospace;color:#334155}
+.pdot{width:6px;height:6px;border-radius:50%}
+.p-i2c{background:#f59e0b}.p-adc{background:#818cf8}.p-don{background:#4ade80}.p-doff{background:#1e293b}
+.statusbar{display:flex;justify-content:space-between;font-size:9px;font-family:'Share Tech Mono',monospace;color:#1e3a2a;margin-top:10px;padding-top:8px;border-top:1px solid #131920;flex-wrap:wrap;gap:4px}
+.s-run{color:#22c55e}
+.pulse{animation:plz 2s ease-in-out infinite}
+@keyframes plz{0%,100%{opacity:1}50%{opacity:.3}}
+.nano-board{background:#1a2e1a;border:2px solid #2a4a2a;border-radius:6px;padding:6px 8px;display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.nano-chip{background:#0d1a0d;border:1px solid #1a3a1a;border-radius:3px;padding:2px 6px;font-size:9px;font-family:'Share Tech Mono',monospace;color:#2a5a2a}
+.nano-dot{width:5px;height:5px;border-radius:50%;background:#22c55e;animation:plz 1.5s ease-in-out infinite}
+@media(max-width:580px){.main-grid{grid-template-columns:1fr}.topbar{flex-direction:column;align-items:flex-start}}
+</style>
+</head>
+<body>
+<div class="root">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">Footstep Energy Generation System</div>
+      <div class="topbar-sub">Arduino Nano (ATmega328P) &middot; v2.0 Production</div>
+    </div>
+    <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">
+      <span class="chip ok">RUNNING</span>
+      <span class="chip" id="loop-chip">loop: 0</span>
+      <span class="chip" id="ms-chip">0 ms</span>
+    </div>
+  </div>
+
+  <div class="main-grid">
+    <div>
+      <div class="nano-board">
+        <div class="nano-dot"></div>
+        <div class="nano-chip">ATmega328P</div>
+        <div class="nano-chip">16 MHz</div>
+        <div class="nano-chip">2kB SRAM</div>
+        <div class="nano-chip">A0&middot;D7&middot;A4&middot;A5</div>
+        <div style="margin-left:auto;font-size:9px;font-family:'Share Tech Mono',monospace;color:#1e4a2e">~1.2kB used</div>
+      </div>
+      <div class="card" style="margin-bottom:10px">
+        <div class="card-label">16&times;2 LCD &mdash; I&sup2;C addr 0x27 &middot; SDA:A4 SCL:A5</div>
+        <div class="lcd-housing">
+          <div class="lcd-glass">
+            <div class="lcd-row" id="lcd-r0"></div>
+            <div class="lcd-row" id="lcd-r1"></div>
+          </div>
+        </div>
+        <div class="pins">
+          <div class="pin"><span class="pdot p-i2c"></span>SDA A4</div>
+          <div class="pin"><span class="pdot p-i2c"></span>SCL A5</div>
+          <div class="pin"><span class="pdot p-adc"></span>PIEZO A0</div>
+          <div class="pin"><span class="pdot p-doff" id="d7dot"></span>LED D7</div>
+          <div class="pin" id="filter-chip">FILTER 10-smp</div>
+          <div class="pin" id="dbnc-chip">DEBOUNCE 400ms</div>
+        </div>
+      </div>
+      <div class="card-label" style="margin-bottom:4px;padding-left:2px">Voltage waveform &mdash; A0 filtered output</div>
+      <canvas class="wave-canvas" id="wc" height="64"></canvas>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="card">
+        <div class="card-label">Piezo Voltage &middot; A0</div>
+        <div id="vdisp" style="font-family:'Orbitron',monospace;font-size:26px;font-weight:700;text-align:center;margin-bottom:4px;color:#334155">0.00<span style="font-size:13px">V</span></div>
+        <div class="volt-track"><div class="volt-fill" id="vbar" style="width:0%;background:#1e293b"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;font-family:'Share Tech Mono',monospace;color:#1e293b;margin-top:3px">
+          <span>ADC:<span id="adc-f" style="color:#475569">0</span></span>
+          <span>RAW:<span id="adc-r" style="color:#475569">0</span></span>
+        </div>
+        <div class="badge badge-none" id="pbadge">No Pressure</div>
+      </div>
+      <div class="card" style="text-align:center">
+        <div class="card-label">Footstep counter</div>
+        <div id="scount" style="font-family:'Orbitron',monospace;font-size:30px;font-weight:700;color:#22c55e">0</div>
+        <div style="font-size:9px;color:#1e4a2e;font-family:'Share Tech Mono',monospace">steps detected</div>
+      </div>
+      <div class="card">
+        <div class="card-label">LED indicator &middot; D7 &middot; 1k&#937;</div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+          <div class="led-dome" id="led"></div>
+          <div class="led-leg"></div>
+          <div class="led-resistor">1k&#937; &rarr; GND</div>
+          <div style="font-size:11px;font-weight:600;margin-top:2px;color:#334155" id="ledlbl">OFF</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-label">Filter buffer &middot; 10 samples</div>
+        <div class="filter-vis" id="fvis"></div>
+        <div style="font-size:9px;color:#1e293b;font-family:'Share Tech Mono',monospace;margin-top:3px">moving average O(1) running sum</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Piezo platform</div>
+        <button class="step-btn" id="sbtn"
+          onmousedown="startP()" onmouseup="endP()" onmouseleave="endP()"
+          ontouchstart="startP(event)" ontouchend="endP()">&#9660; STEP</button>
+        <div style="font-size:9px;color:#1e4a2e;text-align:center;margin-top:4px;font-family:'Share Tech Mono',monospace">hold = sustained pressure</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-label" style="margin-bottom:4px;padding-left:2px">Serial monitor &middot; 9600 baud &middot; serialLog() throttle 500ms</div>
+  <div class="serial" id="serial"></div>
+
+  <div class="statusbar">
+    <span><span class="s-run pulse">&#9632;</span> RUNNING</span>
+    <span>loop() <span id="lc" style="color:#22c55e">0</span></span>
+    <span>millis() <span id="mc" style="color:#22c55e">0</span></span>
+    <span>FILTER_SIZE=10 &middot; DEBOUNCE=400ms &middot; V_REF=5.0V</span>
+    <span>dtostrf &middot; PROGMEM &middot; snprintf</span>
+  </div>
+</div>
+
+<script>
+const FILTER_SIZE=10,DEBOUNCE_MS=400,V_REF=5.0;
+const THR_NO=0.5,THR_LM=2.0,THR_MH=3.5,BAR_MAX=8,LCD_COLS=16;
+const PRESS_LABELS=['No Pressure   ','Low Pressure  ','Med Pressure  ','High Pressure '];
+let fBuf=new Array(FILTER_SIZE).fill(0),fIdx=0,fSum=0,fFull=false;
+let stepCount=0,stepActive=false,lastStepMs=0;
+let loopN=0,t0=Date.now(),pressed=false,rawADC=0,pressT=0;
+let waveData=new Array(90).fill(0),lastLogMs=0;
+let lcV=-1,lcBar=255,lcSt=0xFFFF,lcPi=255;
+let splashDone=false,debounceVis=false,debounceEnd=0;
+function ms(){return Date.now()-t0;}
+function pushFilter(s){
+  fSum-=fBuf[fIdx];fBuf[fIdx]=s;fSum+=s;
+  fIdx=(fIdx+1)%FILTER_SIZE;if(fIdx===0)fFull=true;
+  let d=fFull?FILTER_SIZE:(fIdx===0?FILTER_SIZE:fIdx);
+  return Math.round(fSum/d);
+}
+function adcToV(a){return(a/1023)*V_REF;}
+function classP(v){if(v<THR_NO)return 0;if(v<THR_LM)return 1;if(v<THR_MH)return 2;return 3;}
+function vToBar(v){if(v<=0)return 0;return Math.min(Math.round((v/V_REF)*BAR_MAX),BAR_MAX);}
+function detectStep(v){
+  let above=v>=THR_NO,now=ms();
+  if(above&&!stepActive){stepActive=true;if((now-lastStepMs)>=DEBOUNCE_MS){lastStepMs=now;return true;}}
+  else if(!above){stepActive=false;}return false;
+}
+function buildLCDRow(str){let r=str.substring(0,LCD_COLS);while(r.length<LCD_COLS)r+=' ';return r;}
+function renderLCD(r0,r1){
+  [['lcd-r0',r0],['lcd-r1',r1]].forEach(([id,str])=>{
+    let el=document.getElementById(id),row=buildLCDRow(str);el.innerHTML='';
+    for(let i=0;i<LCD_COLS;i++){
+      let c=row[i],span=document.createElement('span');
+      if(c==='\u2588'){span.className='lcd-cell block-full';span.textContent='\u2588';}
+      else if(c==='\u2591'){span.className='lcd-cell block-empty';span.textContent='\u2591';}
+      else if(c===' '){span.className='lcd-cell';span.style.color='transparent';span.textContent='.';}
+      else{span.className='lcd-cell lit';span.textContent=c;}
+      el.appendChild(span);
+    }
+  });
+}
+function buildLCDContent(voltage,steps,bars){
+  let v=voltage.toFixed(2);
+  let r0=('V:'+v+'V Stps:'+String(steps).padStart(3,' ')).padEnd(LCD_COLS,' ').substring(0,LCD_COLS);
+  let bar='';for(let i=0;i<BAR_MAX;i++)bar+=(i<bars?'\u2588':'\u2591');
+  return[r0,('Power: '+bar).substring(0,LCD_COLS)];
+}
+function updateLCD(v,st,pi,bars){
+  let rv=Math.round(v*100)/100;
+  if(rv===lcV&&bars===lcBar&&st===lcSt&&pi===lcPi)return;
+  lcV=rv;lcBar=bars;lcSt=st;lcPi=pi;
+  let[r0,r1]=buildLCDContent(v,st,bars);renderLCD(r0,r1);
+}
+function updateBadge(pi,v){
+  let el=document.getElementById('pbadge');el.textContent=PRESS_LABELS[pi].trim();el.className='badge';
+  if(v<THR_NO)el.classList.add('badge-none');else if(v<THR_LM)el.classList.add('badge-low');
+  else if(v<THR_MH)el.classList.add('badge-med');else el.classList.add('badge-high');
+}
+function updateVBar(v){
+  let b=document.getElementById('vbar');b.style.width=Math.min(100,(v/V_REF)*100)+'%';
+  if(v<THR_NO)b.style.background='#1e293b';else if(v<THR_LM)b.style.background='#166534';
+  else if(v<THR_MH)b.style.background='#78350f';else b.style.background='#7f1d1d';
+}
+function updateFilterVis(){
+  let el=document.getElementById('fvis');
+  if(el.children.length!==FILTER_SIZE){el.innerHTML='';for(let i=0;i<FILTER_SIZE;i++){let d=document.createElement('div');d.className='filter-bar';el.appendChild(d);}}
+  let maxV=Math.max(...fBuf,1);
+  for(let i=0;i<FILTER_SIZE;i++){
+    let idx=(fIdx-FILTER_SIZE+i+FILTER_SIZE*2)%FILTER_SIZE;
+    el.children[i].style.height=Math.max(8,(fBuf[idx]/maxV)*100)+'%';
+    let v=adcToV(fBuf[idx]);
+    el.children[i].style.background=v<THR_NO?'#1e3a5f':v<THR_LM?'#14532d':v<THR_MH?'#451a03':'#450a0a';
+  }
+}
+function drawWave(){
+  let c=document.getElementById('wc'),ctx=c.getContext('2d');
+  let W=c.offsetWidth,H=c.offsetHeight;c.width=W;c.height=H;
+  ctx.fillStyle='#080d12';ctx.fillRect(0,0,W,H);
+  [THR_NO,THR_LM,THR_MH].forEach(t=>{
+    let y=H-(t/V_REF)*H;ctx.strokeStyle='#1e2d1e';ctx.lineWidth=0.5;
+    ctx.setLineDash([3,4]);ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#1e4a1e';ctx.font='8px Share Tech Mono';ctx.fillText(t+'V',2,y-2);
+  });
+  ctx.strokeStyle='#22c55e';ctx.lineWidth=1.5;ctx.beginPath();
+  let n=waveData.length;
+  for(let i=0;i<n;i++){let x=(i/(n-1))*W,y=H-(waveData[i]/V_REF)*H;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+  ctx.stroke();
+  let last=waveData[n-1];ctx.fillStyle='#4ade80';ctx.beginPath();ctx.arc(W-2,H-(last/V_REF)*H,3,0,Math.PI*2);ctx.fill();
+}
+function addSerial(txt,cls){
+  let el=document.getElementById('serial'),d=document.createElement('div');
+  d.className='s-'+cls;d.textContent=txt;el.appendChild(d);
+  if(el.children.length>80)el.removeChild(el.children[0]);el.scrollTop=el.scrollHeight;
+}
+function serialLog(v,pi,st){
+  let now=ms();if(now-lastLogMs<500)return;lastLogMs=now;
+  addSerial(v.toFixed(3)+'V  |  '+PRESS_LABELS[pi].trim().padEnd(14)+'|  Steps: '+st,'data');
+}
+function getRawADC(){
+  if(pressed){let e=Date.now()-pressT;if(e<90){let t=e/90;return Math.round(180+t*843);}return Math.round(820+Math.random()*203);}
+  rawADC=Math.max(0,rawADC*0.72-6);return Math.round(rawADC+Math.random()*9);
+}
+window.startP=function(e){if(e&&e.cancelable)e.preventDefault();if(debounceVis)return;pressed=true;pressT=Date.now();document.getElementById('sbtn').classList.add('pressing');};
+window.endP=function(){if(!pressed)return;pressed=false;document.getElementById('sbtn').classList.remove('pressing');};
+function showSplash(){
+  renderLCD('Footstep Energy ','Generation Sys. ');
+  setTimeout(()=>{renderLCD('  System Ready  ',' Step  to  Start');setTimeout(()=>{splashDone=true;},1500);},2000);
+}
+function loop(){
+  if(!splashDone){setTimeout(loop,50);return;}loopN++;
+  let raw=getRawADC();if(pressed)rawADC=raw;
+  let filt=pushFilter(raw),voltage=adcToV(filt);
+  waveData.push(voltage);if(waveData.length>90)waveData.shift();
+  let pi=classP(voltage),bars=vToBar(voltage),ledOn=pi>0;
+  if(detectStep(voltage)){
+    stepCount++;document.getElementById('scount').textContent=stepCount;
+    addSerial('>>> detectStep() FIRED — step #'+stepCount+' at '+voltage.toFixed(3)+'V · debounce locked 400ms','evt');
+    debounceVis=true;debounceEnd=ms()+DEBOUNCE_MS;
+    document.getElementById('sbtn').classList.add('debounce');
+    document.getElementById('dbnc-chip').style.color='#fbbf24';document.getElementById('dbnc-chip').style.borderColor='#78350f';
+  }
+  if(debounceVis&&ms()>debounceEnd){
+    debounceVis=false;document.getElementById('sbtn').classList.remove('debounce');
+    document.getElementById('dbnc-chip').style.color='';document.getElementById('dbnc-chip').style.borderColor='';
+  }
+  document.getElementById('led').className='led-dome'+(ledOn?' on':'');
+  document.getElementById('ledlbl').textContent=ledOn?'ON':'OFF';
+  document.getElementById('ledlbl').style.color=ledOn?'#fde047':'#334155';
+  document.getElementById('d7dot').className='pdot '+(ledOn?'p-don':'p-doff');
+  updateLCD(voltage,stepCount,pi,bars);updateBadge(pi,voltage);updateVBar(voltage);updateFilterVis();drawWave();
+  let vcol=['#334155','#4ade80','#fbbf24','#f87171'][pi];
+  document.getElementById('vdisp').innerHTML=voltage.toFixed(2)+'<span style="font-size:13px;color:'+vcol+'">V</span>';
+  document.getElementById('vdisp').style.color=vcol;
+  document.getElementById('adc-f').textContent=filt;document.getElementById('adc-r').textContent=raw;
+  document.getElementById('lc').textContent=loopN;document.getElementById('mc').textContent=ms();
+  document.getElementById('loop-chip').textContent='loop: '+loopN;document.getElementById('ms-chip').textContent=ms()+'ms';
+  serialLog(voltage,pi,stepCount);setTimeout(loop,50);
+}
+renderLCD('  Arduino  Nano ','   Booting...   ');
+addSerial('=== Footstep Energy Generation System v2.0 ===','head');
+addSerial('Voltage(V)  |  Pressure Level  |  Steps','head');
+addSerial('---------------------------------------------------','sep');
+addSerial('setup() — pins configured · LCD init · CGRAM loaded','evt');
+addSerial('CHAR_BLOCK_FULL \u2588 · CHAR_BLOCK_EMPTY \u2591 registered','evt');
+addSerial('Filter buffer zeroed (FILTER_SIZE=10)','evt');
+addSerial('PROGMEM labels loaded · dtostrf ready','evt');
+addSerial('Splash screen 2s...','evt');
+showSplash();
+setTimeout(()=>{addSerial('loop() started — 20Hz sample rate','evt');loop();},3600);
+</script>
+</body>
+</html>
